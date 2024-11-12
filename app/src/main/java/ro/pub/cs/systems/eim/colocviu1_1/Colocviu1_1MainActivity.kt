@@ -1,6 +1,7 @@
 package ro.pub.cs.systems.eim.colocviu1_1
 
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
 import android.widget.Button
 import android.widget.EditText
@@ -8,6 +9,9 @@ import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class Colocviu1_1MainActivity : AppCompatActivity() {
     private lateinit var north_btn: Button
@@ -21,9 +25,26 @@ class Colocviu1_1MainActivity : AppCompatActivity() {
     private lateinit var edit_text: EditText
     private var no_btn_presses = 0
 
+    private lateinit var service_intent: Intent
+    private val broadcast_receiver = Colocviu1_1BroadcastReceiver()
+    private val intent_filter = IntentFilter(Constants.ACTION_STRING)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_colocviu1_1_main)
+
+        intent_filter.addAction(Constants.ACTION_STRING)
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            while (no_btn_presses < 4) {
+                // wait for the user to press 4 buttons
+            }
+
+            service_intent = Intent(this@Colocviu1_1MainActivity, Colocviu1_1Service::class.java)
+            service_intent.putExtra(Constants.EDIT_TEXT, edit_text.text.toString())
+            service_intent.putExtra(Constants.NO_BTN_PRESSES.toString(), no_btn_presses)
+            startForegroundService(service_intent)
+        }
 
         north_btn = findViewById<Button>(R.id.north_btn)
         west_btn = findViewById<Button>(R.id.west_btn)
@@ -86,12 +107,18 @@ class Colocviu1_1MainActivity : AppCompatActivity() {
             val intent = Intent(this, Colocviu1_1SecondActivity::class.java)
             intent.putExtra(Constants.EDIT_TEXT, edit_text.text.toString())
             intent.putExtra(Constants.NO_BTN_PRESSES.toString(), no_btn_presses)
-            
+
             edit_text.setText("")
             no_btn_presses = 0
 
             activity_result_launcher.launch(intent)
         }
+    }
+
+    @Override
+    override fun onResume() {
+        super.onResume()
+        registerReceiver(broadcast_receiver, intent_filter, RECEIVER_EXPORTED)
     }
 
     @Override
